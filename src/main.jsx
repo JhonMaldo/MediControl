@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Activity, Bell, CalendarDays, ClipboardList, FileText, FlaskConical, FolderOpen, HeartPulse, LayoutDashboard, LockKeyhole, Search, Stethoscope, UserRound } from 'lucide-react';
 import { analyzePulse } from './vitalwatch.js';
+import AgendaInasistencia from './AgendaInasistencia.jsx';
 import './style.css';
 
 const storageKey = 'medicontrol-demo-v1';
@@ -269,6 +270,7 @@ function App() {
         </>}
 
         {role === 'nurse' && page === 'home' && <>
+          <AgendaInasistencia/>
           {appointment}
           <Panel title="Registro de signos vitales">
             <div className="vital-preview">
