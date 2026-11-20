@@ -1,0 +1,125 @@
+{
+  "name": "VitalWatch - Detección de mediciones atípicas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vitalwatch-analyze",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d5f32393-a318-4c7b-88d3-b7bc295e87ba",
+      "name": "Recibir medición",
+      "webhookId": "886e0cb3-ce06-4359-af96-0353b0be0dbe"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { pulse, history } = $input.first().json.body ?? {};\nconst validPulse = value => Number.isInteger(value) && value >= 1 && value <= 350;\nconst items = json => [{ json }];\nif (!validPulse(pulse) || !Array.isArray(history) || history.length > 30 || !history.every(validPulse)) {\n  return items({ status: 'invalid_input' });\n}\n\nconst sampleCount = history.length;\nif (sampleCount < 4) return items({ status: 'insufficient_history', sampleCount });\nreturn items({ pulse, history, sampleCount });"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ],
+      "id": "1c77b7be-9e43-44e8-adbb-bf77f8b6e14e",
+      "name": "Validar medición e historial"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (input.status) return [{ json: input }];\n\nconst { pulse, history, sampleCount } = input;\nfunction median(values) {\n  const ordered = [...values].sort((a, b) => a - b);\n  const upper = Math.floor(ordered.length / 2);\n  return (ordered[Math.floor((ordered.length - 1) / 2)] + ordered[upper]) / 2;\n}\n\nconst center = median(history);\nconst mad = median(history.map(value => Math.abs(value - center)));\nconst calibrationDistances = history.map((value, index) => {\n  const reference = history.filter((_, candidate) => candidate !== index);\n  const differences = reference.map(sample => Math.abs(value - sample)).sort((a, b) => a - b);\n  return (differences[0] + differences[1]) / 2;\n});\n\nreturn [{ json: { pulse, history, sampleCount, center, mad, neighborThreshold: Math.max(12, 3 * median(calibrationDistances)) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "ab7c1737-4ac1-443f-9f03-a7b2604c1cfa",
+      "name": "Calibrar el patrón personal"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (input.status) return [{ json: input }];\n\nconst { pulse, history, sampleCount, center, mad, neighborThreshold } = input;\nconst differences = history.map(sample => Math.abs(pulse - sample)).sort((a, b) => a - b);\nconst neighborDistance = (differences[0] + differences[1]) / 2;\nconst centerDistance = Math.abs(pulse - center);\n// MAD escalada para expresar la dispersión en las mismas unidades que el pulso.\nconst centerThreshold = Math.max(12, 3 * 1.4826 * mad);\nconst neighborSignal = neighborDistance > neighborThreshold;\nconst centerSignal = centerDistance > centerThreshold;\n\nreturn [{ json: {\n  status: neighborSignal && centerSignal ? 'atypical' : 'typical',\n  sampleCount, direction: pulse > center ? 'above' : pulse < center ? 'below' : 'center',\n  evidence: { center, mad, neighborDistance, neighborThreshold, centerDistance, centerThreshold, neighborSignal, centerSignal },\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        0
+      ],
+      "id": "a761fb11-01be-4057-afed-ee208feb1040",
+      "name": "Evaluar con k-NN y dispersión robusta"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { status, sampleCount, direction, evidence } = $input.first().json;\nconst explanations = {\n  invalid_input: 'La medición o el historial tienen un formato inválido.',\n  insufficient_history: 'Se necesitan al menos cuatro mediciones previas.',\n  atypical: direction === 'above'\n    ? 'La frecuencia está por encima del patrón habitual y lejos de sus lecturas más parecidas.'\n    : 'La frecuencia está por debajo del patrón habitual y lejos de sus lecturas más parecidas.',\n  typical: 'Los dos criterios del modelo no coincidieron en señalar una desviación.',\n};\n\nreturn [{ json: { status, explanation: explanations[status], sampleCount, direction, evidence } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "42b1d0c4-910f-46cd-baf4-c693ac4ea5e4",
+      "name": "Explicar y responder a VitalWatch"
+    }
+  ],
+  "connections": {
+    "Recibir medición": {
+      "main": [
+        [
+          {
+            "node": "Validar medición e historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar medición e historial": {
+      "main": [
+        [
+          {
+            "node": "Calibrar el patrón personal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calibrar el patrón personal": {
+      "main": [
+        [
+          {
+            "node": "Evaluar con k-NN y dispersión robusta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar con k-NN y dispersión robusta": {
+      "main": [
+        [
+          {
+            "node": "Explicar y responder a VitalWatch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
