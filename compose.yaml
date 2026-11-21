@@ -1,16 +1,4 @@
 services:
-  n8n:
-    image: docker.n8n.io/n8nio/n8n:2.0.0
-    ports:
-      - "127.0.0.1:${N8N_HOST_PORT:-5678}:5678"
-    environment:
-      EXECUTIONS_DATA_SAVE_ON_ERROR: none
-      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
-      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "false"
-    volumes:
-      - n8n-data:/home/node/.n8n
-      - ./n8n:/workflows:ro
-
   signos-db:
     image: mariadb:11.4
     profiles: [pronostico]
@@ -43,6 +31,18 @@ services:
       DB_PASSWORD: ${SIGNOS_DB_PASSWORD:-medicontrol-demo-local}
       SEED_DEMO: ${PRONOSTICO_SEED_DEMO:-1}
 
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.0.0
+    ports:
+      - "127.0.0.1:${N8N_HOST_PORT:-5678}:5678"
+    environment:
+      EXECUTIONS_DATA_SAVE_ON_ERROR: none
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "false"
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./n8n:/workflows:ro
+
 volumes:
-  n8n-data:
   signos-data:
+  n8n-data:
