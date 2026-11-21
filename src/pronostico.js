@@ -114,7 +114,8 @@ export function calcularGrafica(datos, lienzo = LIENZO) {
   const todas = [...registrados.map(p => p.fecha), ...pronostico.map(p => p.fecha)];
   const cada = Math.max(1, Math.ceil(todas.length / 7));
   const fechas = todas.filter((_, i) => i % cada === 0 || i === todas.length - 1)
-    .map(fecha => ({ fecha, x: x(fecha), texto: fecha.slice(8) + '/' + fecha.slice(5, 7) }));
+    .map(fecha => ({ fecha, x: x(fecha), texto: fecha.slice(8) + '/' + fecha.slice(5, 7) }))
+    .filter((f, i, lista) => i !== lista.length - 2 || lista.at(-1).x - f.x >= 45);   // sin etiquetas encimadas
 
   return {
     escala: e,
