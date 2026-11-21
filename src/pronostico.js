@@ -72,8 +72,8 @@ export function escala(valores) {
   const finitos = valores.filter(esNumero);
   const minimo = Math.min(...finitos);
   const maximo = Math.max(...finitos);
-  const pasos = [0.1, 0.2, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200];
-  const paso = pasos.find(p => Math.floor(minimo / p + 1e-9) * p + 3 * p > maximo + 1e-9) ?? pasos.at(-1);
+  const pasos = [0.1, 0.2, 0.3, 0.4, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 100, 200];
+  const paso = pasos.find(p => Math.floor(minimo / p + 1e-9) * p + 3 * p >= maximo - 1e-9) ?? pasos.at(-1);
   const decimales = Number.isInteger(paso) ? 0 : 1;
   const redondear = valor => Number(valor.toFixed(decimales));
   const bajo = redondear(Math.floor(minimo / paso + 1e-9) * paso);
