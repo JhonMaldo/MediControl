@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import TendenciaSignos from './TendenciaSignos.jsx';
 import { Activity, Bell, CalendarDays, ClipboardList, FileText, FlaskConical, FolderOpen, HeartPulse, LayoutDashboard, LockKeyhole, Search, Stethoscope, UserRound } from 'lucide-react';
 import { analyzePulse } from './vitalwatch.js';
 import './style.css';
@@ -336,6 +337,7 @@ function App() {
             <p className="chart-legend"><span aria-hidden="true">◆</span> Lectura atípica respecto a tu historial</p>
             {selectedReading && <button className="secondary" onClick={() => setSelectedReading(null)}>Ver últimas mediciones</button>}
           </Panel>
+          <TendenciaSignos perfil="paciente"/>
           {showReading && <Panel title="Nueva medición"><form onSubmit={event => saveForm(event, values => {
             const vital = measurements(values);
             if (!vital) return;
@@ -380,6 +382,7 @@ function App() {
           {['Resumen', 'Signos'].includes(recordTab) && <Panel title="Evolución de signos vitales" subtitle="Presión sistólica (mmHg)">
             <VitalChart readings={data.readings} metric="systolic"/>
           </Panel>}
+          {recordTab === 'Signos' && role === 'doctor' && <TendenciaSignos perfil="medico"/>}
           {recordTab === 'Signos' && assessment}
           {['Resumen', 'Notas', 'Consultas'].includes(recordTab) && consultation}
           {recordTab === 'Consultas' && appointment}

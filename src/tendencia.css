@@ -1,0 +1,19 @@
+/* Estilos del panel "Tendencia de signos vitales" (archivo aparte para no chocar con style.css) */
+.tendencia-filtros { display: flex; flex-wrap: wrap; gap: 10px; }
+.tendencia-filtros label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; }
+.tendencia-modelo { font-size: .9rem; }
+.tendencia-estado { display: grid; gap: 10px; }
+.tendencia-leyenda { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 0; padding: 0; list-style: none; font-size: .85rem; color: var(--muted); }
+.tendencia-leyenda li { display: flex; align-items: center; gap: 7px; }
+.muestra { display: inline-block; width: 22px; height: 10px; border-radius: 3px; }
+.muestra.registrado { height: 3px; background: #287ebc; }
+.muestra.proyeccion { height: 0; border-top: 3px dashed #d9720f; border-radius: 0; }
+.muestra.margen { background: #f08a2433; }
+.muestra.referencia { background: #e3f4e6; border: 1px solid #c3e3c9; }
+.tendencia-advertencias { display: grid; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; font-size: .9rem; }
+.tendencia-advertencias li { padding: 8px 12px; border-radius: 8px; border: 1px solid; }
+.tendencia-aviso { background: #fff6e8; border-color: #f2d3a2; color: #7a4a06; }
+.tendencia-rechazo { background: #fcecef; border-color: #efc2cc; color: #8a2239; }
+.tendencia-sin_pronostico { background: #eef3f7; border-color: #d3e0ea; color: #3a5670; }
+.tendencia-sin { margin-top: 12px; }
+.tendencia-nota { margin-top: 12px; font-size: .82rem; }
