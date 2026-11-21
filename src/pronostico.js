@@ -67,17 +67,18 @@ export function obtenerPacientes(signal) {
 
 const diasEntre = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000);
 
-// Escala vertical "redonda" que incluye todos los valores
+// Escala vertical con 4 marcas (3 intervalos iguales y "redondos") que incluye todos los valores
 export function escala(valores) {
   const finitos = valores.filter(esNumero);
-  let bajo = Math.min(...finitos);
-  let alto = Math.max(...finitos);
-  if (alto - bajo < 1e-9) { bajo -= 1; alto += 1; }
-  const paso = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50].find(p => (alto - bajo) / p <= 6) ?? 100;
-  bajo = Math.floor(bajo / paso - 1e-9) * paso;
-  alto = Math.ceil(alto / paso + 1e-9) * paso;
-  const decimales = paso < 1 ? 1 : 0;
-  const marcas = [0, 1, 2, 3].map(i => Number((alto - i * (alto - bajo) / 3).toFixed(decimales)));
+  const minimo = Math.min(...finitos);
+  const maximo = Math.max(...finitos);
+  const pasos = [0.1, 0.2, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200];
+  const paso = pasos.find(p => Math.floor(minimo / p + 1e-9) * p + 3 * p > maximo + 1e-9) ?? pasos.at(-1);
+  const decimales = Number.isInteger(paso) ? 0 : 1;
+  const redondear = valor => Number(valor.toFixed(decimales));
+  const bajo = redondear(Math.floor(minimo / paso + 1e-9) * paso);
+  const alto = redondear(bajo + 3 * paso);
+  const marcas = [0, 1, 2, 3].map(i => redondear(alto - i * paso));
   return { bajo, alto, marcas, decimales };
 }
 

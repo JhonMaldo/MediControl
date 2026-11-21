@@ -53,6 +53,8 @@ test('la escala es redonda e incluye todos los valores', () => {
   assert.ok(e.bajo <= 36 && e.alto >= 39.4);
   assert.equal(e.marcas.length, 4);
   assert.equal(e.marcas[0], e.alto);
+  assert.deepEqual(e.marcas, [42, 40, 38, 36]);            // intervalos iguales y redondos
+  assert.deepEqual(escala([60, 100, 152.9]).marcas, [200, 150, 100, 50]);
   const plano = escala([95, 95]);
   assert.ok(plano.alto > plano.bajo);
 });
