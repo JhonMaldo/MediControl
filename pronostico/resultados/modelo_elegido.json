@@ -1,0 +1,19 @@
+{
+  "fecha": "2026-11-20T22:11:21",
+  "origen_datos": "demo",
+  "criterio": "Por signo: menor MAE con cobertura >= 75 % y no más rechazos que el modelo base; si ninguno cumple, base. Origen móvil: 4 cortes de 7 días, banda 90 %.",
+  "modelos": {
+    "frecuencia_cardiaca": "arima",
+    "presion_sistolica": "arima",
+    "presion_diastolica": "arima",
+    "temperatura": "arima",
+    "saturacion_oxigeno": "arima"
+  },
+  "motivos": {
+    "frecuencia_cardiaca": "Menor MAE entre los aptos (4.394, cobertura 80.0 %, mejora vs base 2.6 %); no aptos: prophet (cobertura 69.1 %, rechazos 0.0 %)",
+    "presion_sistolica": "Menor MAE entre los aptos (4.733, cobertura 88.8 %, mejora vs base 19.3 %)",
+    "presion_diastolica": "Menor MAE entre los aptos (3.076, cobertura 91.2 %, mejora vs base 4.2 %)",
+    "temperatura": "Menor MAE entre los aptos (0.164, cobertura 84.5 %, mejora vs base 13.3 %); no aptos: prophet (cobertura 64.5 %, rechazos 0.0 %)",
+    "saturacion_oxigeno": "Menor MAE entre los aptos (0.915, cobertura 84.5 %, mejora vs base 8.9 %); no aptos: prophet (cobertura 71.8 %, rechazos 0.0 %)"
+  }
+}

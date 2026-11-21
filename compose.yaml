@@ -1,4 +1,36 @@
 services:
+  signos-db:
+    image: mariadb:11.4
+    profiles: [pronostico]
+    environment:
+      MARIADB_DATABASE: medicontrol
+      MARIADB_USER: medicontrol
+      MARIADB_PASSWORD: ${SIGNOS_DB_PASSWORD:-medicontrol-demo-local}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes:
+      - signos-data:/var/lib/mysql
+      - ./pronostico/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro,Z
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  pronostico-signos:
+    build: ./pronostico
+    profiles: [pronostico]
+    depends_on:
+      signos-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PRONOSTICO_API_PORT:-8092}:8080"
+    environment:
+      DB_HOST: signos-db
+      DB_NAME: medicontrol
+      DB_USER: medicontrol
+      DB_PASSWORD: ${SIGNOS_DB_PASSWORD:-medicontrol-demo-local}
+      SEED_DEMO: ${PRONOSTICO_SEED_DEMO:-1}
+
   n8n:
     image: docker.n8n.io/n8nio/n8n:2.0.0
     ports:
@@ -12,4 +44,5 @@ services:
       - ./n8n:/workflows:ro
 
 volumes:
+  signos-data:
   n8n-data:
