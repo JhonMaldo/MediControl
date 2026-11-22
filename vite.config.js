@@ -5,6 +5,10 @@ const proxy = {
     target: process.env.N8N_ORIGIN || 'http://127.0.0.1:5678',
     rewrite: () => '/webhook/vitalwatch-analyze',
   },
+  '/ollama': {
+    target: process.env.OLLAMA_ORIGIN || 'http://127.0.0.1:11434',
+    rewrite: path => path.replace(/^\/ollama/, ''),
+  },
 };
 
 export default defineConfig({
