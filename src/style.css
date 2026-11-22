@@ -204,3 +204,13 @@ h1 { font-size: clamp(1.4rem, 3.5vw, 2rem); letter-spacing: -.035em; }
 .rag-sources { display: grid; gap: 8px; padding-left: 20px; }
 .rag-sources li span { display: block; color: #4a5d73; font-size: .9rem; }
 @media (max-width: 640px) { .rag-form { grid-template-columns: 1fr; } }
+
+/* Resumen inteligente del expediente */
+.resumen-form { grid-template-columns: minmax(200px, 320px) auto; justify-content: start; }
+.resumen-texto { display: grid; gap: 6px; }
+.resumen-texto h3 { margin-top: 8px; font-size: 1rem; }
+.resumen-item { padding-left: 6px; line-height: 1.5; }
+.resumen-meta { color: #6b7c90; font-size: .8rem; }
+.resumen-alerta { border: 1px solid #f0c36d; background: #fff8e6; border-radius: 10px; padding: 12px 14px; }
+.resumen-alerta ul { margin: 6px 0 0 18px; }
+@media (max-width: 640px) { .resumen-form { grid-template-columns: 1fr; } }

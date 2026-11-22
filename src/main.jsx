@@ -5,6 +5,7 @@ import { analyzePulse } from './vitalwatch.js';
 import { historialDemo } from './historial-demo.js';
 import { MEDICO_DEMO, pacientesDemo } from './pacientes-demo.js';
 import { TODOS, pacientesAutorizados, preguntarExpediente } from './rag.js';
+import { formatearResumen, resumirExpediente } from './resumen.js';
 import './style.css';
 
 const storageKey = 'medicontrol-demo-v1';
@@ -117,6 +118,46 @@ function PreguntaExpediente({ data, rol }) {
       <h3>Registros consultados</h3>
       <ol className="rag-sources">{estado.resultado.fuentes.map(fuente =>
         <li key={fuente.id}><strong>{varios ? fuente.paciente + ' · ' : ''}{fuente.fuente}</strong><span>{fuente.texto}</span></li>)}</ol>
+    </div>}
+  </Panel>;
+}
+
+function ResumenExpediente({ data, rol }) {
+  const pacientes = pacientesDemo.map(p => p.id === 'p01' ? { ...p, data: { assessment: data.assessment, soap: data.soap, readings: data.readings } } : p);
+  const autorizados = pacientesAutorizados({ rol, medicoId: MEDICO_DEMO, pacientes });
+  const [pacienteId, setPacienteId] = useState(autorizados[0]?.id ?? '');
+  const [estado, setEstado] = useState({ cargando: false, error: '', resultado: null });
+  const generar = async event => {
+    event.preventDefault();
+    setEstado({ cargando: true, error: '', resultado: null });
+    try {
+      const resultado = await resumirExpediente({ rol, medicoId: MEDICO_DEMO, pacienteId, pacientes });
+      setEstado({ cargando: false, error: '', resultado });
+    } catch (error) {
+      setEstado({ cargando: false, error: error.message + '. Revisa que Ollama esté abierto.', resultado: null });
+    }
+  };
+  const r = estado.resultado;
+  return <Panel title="Resumen inteligente" subtitle="Generado con un modelo local a partir de los registros del expediente. Verifícalo con los registros originales.">
+    <form className="rag-form resumen-form" onSubmit={generar}>
+      <label>Paciente<select value={pacienteId} onChange={event => { setPacienteId(event.target.value); setEstado({ cargando: false, error: '', resultado: null }); }}>
+        {autorizados.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+      </select></label>
+      <button className="primary" disabled={estado.cargando || !pacienteId}>{estado.cargando ? 'Generando…' : 'Generar resumen'}</button>
+    </form>
+    {estado.error && <p className="rag-error" role="alert">{estado.error}</p>}
+    {r && <div className="rag-result" aria-live="polite">
+      {r.advertencias.length > 0 && <div className="resumen-alerta" role="alert">
+        <strong>Revisa el resumen antes de usarlo</strong>
+        <ul>{r.advertencias.map(a => <li key={a}>{a}</li>)}</ul>
+      </div>}
+      <div className="resumen-texto">{formatearResumen(r.resumen).map((linea, i) => linea.tipo === 'item'
+        ? <p key={i} className="resumen-item">• {linea.texto}</p>
+        : <h3 key={i}>{linea.texto}</h3>)}</div>
+      <p className="resumen-meta">{r.modelo} · {r.segundos} s</p>
+      <h3>Registros originales</h3>
+      <ol className="rag-sources">{r.registros.map(registro =>
+        <li key={registro.id}><strong>{registro.fuente}</strong><span>{registro.texto}</span></li>)}</ol>
     </div>}
   </Panel>;
 }
@@ -408,11 +449,12 @@ function App() {
 
         {page === 'record' && <>
           <nav className="record-tabs" aria-label="Secciones del expediente">
-            {['Resumen', 'Signos', 'Laboratorios', 'Documentos', 'Notas', 'Consultas', ...(role === 'doctor' ? ['Preguntar'] : [])].map(tab =>
+            {['Resumen', 'Signos', 'Laboratorios', 'Documentos', 'Notas', 'Consultas', ...(role === 'doctor' ? ['Preguntar', 'Resumen IA'] : [])].map(tab =>
               <button key={tab} aria-current={recordTab === tab ? 'page' : undefined} onClick={() => setRecordTab(tab)}>{tab}</button>)}
           </nav>
           {recordTab === 'Preguntar' && role === 'doctor' && <PreguntaExpediente data={data} rol={role}/>}
-          {recordTab !== 'Preguntar' && <Panel title="Andrea López" subtitle="Expediente de demostración">
+          {recordTab === 'Resumen IA' && role === 'doctor' && <ResumenExpediente data={data} rol={role}/>}
+          {!['Preguntar', 'Resumen IA'].includes(recordTab) && <Panel title="Andrea López" subtitle="Expediente de demostración">
             {recordTab === 'Resumen' && <dl className="details">
               <div><dt>Antecedentes</dt><dd>{historialDemo.antecedentes.join(' ')}</dd></div>
               <div><dt>Alergias</dt><dd>{historialDemo.alergias.join(' ')}</dd></div>
