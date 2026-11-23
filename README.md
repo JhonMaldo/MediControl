@@ -50,3 +50,21 @@ curl --fail-with-body http://127.0.0.1:5678/webhook/vitalwatch-analyze \
 ```
 
 Se espera una respuesta JSON con `"status":"atypical"`, `"direction":"above"` y los detalles de ambos criterios en `evidence`. El flujo usa la [URL de producción del nodo Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/). Ejecuta `npm test` para verificar el código exportado del nodo de n8n y el contrato del cliente sin levantar Docker.
+
+## Predicción de inasistencia a citas
+
+**Responsable de la tarea:** Melanie Montes García.
+
+En **Recepción / Enfermería → Citas del día**, el panel **Prioridad de confirmación** muestra las citas programadas de la fecha seleccionada ordenadas por probabilidad estimada de inasistencia.
+
+1. Ejecuta `docker compose --profile inasistencia up -d --build prediccion-citas`.
+2. Revisa `docker compose logs -f prediccion-citas` hasta que indique que la API está disponible. El servicio crea el histórico ficticio en MariaDB cuando la tabla está vacía y entrena TensorFlow al arrancar.
+3. Ejecuta `npm run dev` y abre la agenda del **20 de noviembre de 2026**. También puedes consultar `curl -f 'http://127.0.0.1:8091/api/inasistencia?fecha=2026-11-20'`.
+
+La API `GET /api/inasistencia?fecha=AAAA-MM-DD` devuelve la fecha y una lista `citas` ordenada de mayor a menor probabilidad, con `id`, `paciente`, `hora` y `probabilidad` (entre 0 y 1). Una fecha inválida recibe 400 y una base de datos inaccesible recibe 503. Las predicciones corresponden al panel de MariaDB. El recorrido original de valoración y consulta usa sus propios datos de demostración.
+
+El modelo aprende con citas que terminaron en asistencia o inasistencia. Las cancelaciones previas sí se cuentan entre las variables; solo se incluyen eventos resueltos antes de reservar cada cita. El 20 % cronológicamente más reciente se reserva para evaluar AUC cuando contiene ambas clases. Las cifras de la demo provienen de datos sintéticos. Para probar otro historial, usa el esquema de `inasistencia/schema.sql`, carga registros compatibles y arranca con `CITAS_SEED_DEMO=0`.
+
+### Tablero físico del equipo
+
+Melanie coordina el seguimiento con tres columnas: **Pendiente**, **En proceso** y **Terminada**. Cada post-it lleva el nombre de la actividad y su responsable. Mueve el post-it al iniciar o terminar la actividad y registra qué falta verificar. Para esta tarea, el post-it puede decir **Predicción de inasistencia — Melanie Montes García**. La verificación consiste en levantar MariaDB y TensorFlow y revisar la agenda de recepción.

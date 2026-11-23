@@ -11,5 +11,38 @@ services:
       - n8n-data:/home/node/.n8n
       - ./n8n:/workflows:ro
 
+  citas-db:
+    image: mariadb:11.4
+    profiles: [inasistencia]
+    environment:
+      MARIADB_DATABASE: medicontrol
+      MARIADB_USER: medicontrol
+      MARIADB_PASSWORD: ${CITAS_DB_PASSWORD:-medicontrol-demo-local}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes:
+      - citas-data:/var/lib/mysql
+      - ./inasistencia/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro,Z
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  prediccion-citas:
+    build: ./inasistencia
+    profiles: [inasistencia]
+    depends_on:
+      citas-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${CITAS_API_PORT:-8091}:8080"
+    environment:
+      DB_HOST: citas-db
+      DB_NAME: medicontrol
+      DB_USER: medicontrol
+      DB_PASSWORD: ${CITAS_DB_PASSWORD:-medicontrol-demo-local}
+      SEED_DEMO: ${CITAS_SEED_DEMO:-1}
+
 volumes:
   n8n-data:
+  citas-data:
