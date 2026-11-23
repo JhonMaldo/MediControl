@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import date, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlsplit
@@ -10,8 +11,10 @@ import tensorflow as tf
 
 from demo import demo_rows
 
+ESTADOS_CONFIRMACION = ('Pendiente', 'Confirmada', 'Sin respuesta')
+
 FEATURE_QUERY = """
-SELECT c.id, c.paciente, c.programada_en, c.estado,
+SELECT c.id, c.paciente, c.programada_en, c.estado, c.confirmacion,
        TIMESTAMPDIFF(MINUTE, c.reservada_en, c.programada_en) / 1440.0 AS anticipacion,
        (SELECT COUNT(*) FROM citas h WHERE h.paciente_id = c.paciente_id
         AND h.resuelta_en < c.reservada_en AND h.estado = 'asistio') AS asistencias,
@@ -42,6 +45,11 @@ def features(rows):
 
 def prepare():
     with connect() as connection, connection.cursor() as cursor:
+        # Actualiza también los volúmenes creados antes del seguimiento de confirmaciones.
+        cursor.execute("""
+            ALTER TABLE citas ADD COLUMN IF NOT EXISTS confirmacion
+            ENUM('Pendiente', 'Confirmada', 'Sin respuesta') NOT NULL DEFAULT 'Pendiente'
+        """)
         if os.environ.get('SEED_DEMO') == '1':
             cursor.execute('SELECT 1 FROM citas LIMIT 1')
             if cursor.fetchone() is None:
@@ -94,7 +102,7 @@ def agenda(model, day):
     ranked = sorted(zip(rows, scores), key=lambda pair: -float(pair[1]))
     return [
         {'id': row['id'], 'paciente': row['paciente'], 'hora': row['programada_en'].strftime('%H:%M'),
-         'probabilidad': round(float(score), 4)}
+         'probabilidad': round(float(score), 4), 'confirmacion': row['confirmacion']}
         for row, score in ranked
     ]
 
@@ -111,6 +119,39 @@ def main():
             self.send_header('Cache-Control', 'no-store')
             self.end_headers()
             self.wfile.write(data)
+
+        def do_PUT(self):
+            ruta = re.fullmatch(r'/api/inasistencia/([1-9][0-9]{0,19})/confirmacion', urlsplit(self.path).path)
+            if not ruta:
+                return self.respond(404, {'error': 'Ruta desconocida'})
+            cita_id = int(ruta[1])
+            try:
+                longitud = int(self.headers.get('Content-Length', '0'))
+                if not 0 < longitud <= 1024:
+                    raise ValueError
+                datos = json.loads(self.rfile.read(longitud))
+                if not isinstance(datos, dict):
+                    raise ValueError
+                anterior, nuevo = datos.get('anterior'), datos.get('confirmacion')
+                if anterior not in ESTADOS_CONFIRMACION or nuevo not in ESTADOS_CONFIRMACION:
+                    raise ValueError
+            except (ValueError, UnicodeError):
+                return self.respond(400, {'error': 'Estado de confirmación inválido.'})
+
+            try:
+                with connect() as connection, connection.cursor() as cursor:
+                    cursor.execute("SELECT confirmacion FROM citas WHERE id=%s AND estado='programada' FOR UPDATE",
+                                   (cita_id,))
+                    cita = cursor.fetchone()
+                    if not cita:
+                        return self.respond(404, {'error': 'La cita ya no está programada.'})
+                    if cita['confirmacion'] not in (anterior, nuevo):
+                        return self.respond(409, {'error': 'Otra persona actualizó esta cita. Revisa el estado.'})
+                    cursor.execute('UPDATE citas SET confirmacion=%s WHERE id=%s', (nuevo, cita_id))
+                    connection.commit()
+            except pymysql.MySQLError:
+                return self.respond(503, {'error': 'No se pudo guardar en la agenda.'})
+            self.respond(200, {'id': cita_id, 'confirmacion': nuevo})
 
         def do_GET(self):
             url = urlsplit(self.path)

@@ -5,6 +5,7 @@ CREATE TABLE citas (
   reservada_en DATETIME NOT NULL,
   programada_en DATETIME NOT NULL,
   estado ENUM('programada', 'asistio', 'inasistencia', 'cancelada') NOT NULL,
+  confirmacion ENUM('Pendiente', 'Confirmada', 'Sin respuesta') NOT NULL DEFAULT 'Pendiente',
   resuelta_en DATETIME,
   INDEX agenda (estado, programada_en),
   INDEX historial (paciente_id, resuelta_en),
